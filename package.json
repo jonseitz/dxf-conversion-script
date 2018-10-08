@@ -1,0 +1,17 @@
+{
+  "name": "dxf-converter",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^6.0.0",
+    "dxf": "^3.3.0",
+    "esm": "^3.0.84",
+    "xml-js": "^1.6.8"
+  }
+}
