@@ -1,46 +1,50 @@
-import fs from 'fs';
-import {resolve} from 'path';
-import request from 'axios';
+const fs = require('fs');
+const resolve =  require('path').resolve;
+const request = require('axios');
 
-(function upload() {
-  const mb = buildings.map(async (building) => {
-  // try {
-      // const {status} = await request.post("http://localhost:8888/api/buildings/new", building);
-      // if (status === 500) {
-        // throw new Error(data.error);
-      // }
-    // } catch (err) {
-    // } finally {
-    const {data} = await request.get(`http://localhost:8888/api/buildings/byName/${building.buildingName}`);
-    const floorMap = new Map();
-    const paths = await fs.promises.readdir("./json")
-    const layers = await paths.map(async (path) => {
-      const fileRE = /^(([\w\s]+)_(.+?))-(.*).json$/
-      const details = fileRE.exec(path);
-      if (details && details[1] === building.buildingName) {
-        const fullPath = resolve(__dirname, "json", path);
-        const file = await fs.promises.open(fullPath, 'r');
-        const content = await file.readFile({encoding: "UTF-8"});
-        // console.log(details);
-        if (floorMap.has(details[1])) {
-          const thisFloor = floorMap.get(details[1]);
-          thisFloor.layers.push(JSON.parse(content));
-          floorMap.set(details[1], thisFloor);
-      }
-      else {
-        floorMap.set(details[1], {
-          building: mongoBuildings.get(details[2].id),
-          floorNumber: details[3],
-          layers: [JSON.parse(content)]
-        });
-      }
-      await file.close();
-      return content;
+(async function upload() {
+  const buildingList = await fs.promises
+    .readFile("./buildings.json", { encoding: "UTF-8" })
+  const buildings = JSON.parse(buildingList);
+  for (let i = 0; i < buildings.length; i++) {
+    const building = buildings[i];
+    let {data} = await request.get(`http://localhost:3001/api/buildings/byName/${building.buildingName}`);
+    if (data === null) {
+      let {data} = await request.post("http://localhost:3001/api/buildings/new", building);
     }
-  });
-  await Promise.all(layers);
-  await floorMap.forEach(async (floor, tag) => {
-    // console.log(`posting ${tag}`);
-    return await request.post("http://localhost:8888/api/floorplans/new", floor);
-  });
+    const fileNames = await fs.promises.readdir("./json")
+    const theseFiles = fileNames.filter(e => ~e.search(data.buildingName));
+    const floorMap = new Map();
+    for (let i = 0; i < theseFiles.length; i++) {
+      const thisFile = theseFiles[i];
+      const fileRE = /^(([\w\s]+)_(.+?))-(.*).json$/
+      const [fileName, uid, buidlingName, floorNumber, layer] = fileRE.exec(thisFile);
+      const fullPath = resolve(__dirname, 'json', fileName);
+      const svgData = await fs.promises.readFile(fullPath, { encoding: "UTF-8" })
+      const svgContent = JSON.parse(svgData);
+      if (floorMap.has(floorNumber)) {
+        floorMap.get(floorNumber).push(svgContent); 
+      } else {
+        floorMap.set(floorNumber, [svgContent]);
+      }
+    }
+    for (let i = 0; i < floorMap.size; i++) {
+      const floors = floorMap.keys();
+      // console.log(floors);
+      const floorNumber = [...floors][i];
+      // console.log(floorNumber);
+      const floorObject = {
+        building: data._id,
+        layers: floorMap.get(floorNumber),
+        floorNumber
+      }
+      console.log(floorObject);
+      try {
+        await request.post("http://localhost:3001/api/floorplans/new", floorObject);
+      }
+      catch (err) {
+        console.error(err);
+      }
+    }
+  }
 })();
