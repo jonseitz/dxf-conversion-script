@@ -1,5 +1,5 @@
 const fs = require('fs');
-const resolve =  require('path').resolve;
+const { resolve } = require('path')
 const request = require('axios');
 
 (async function upload() {

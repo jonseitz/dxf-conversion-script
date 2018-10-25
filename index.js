@@ -1,7 +1,7 @@
-import * as dxf from "dxf";
-import fs from "fs";
-import { xml2json } from "xml-js";
-import { resolve } from "path";
+const dxf = require("dxf");
+const fs = require("fs");
+const { xml2json }= require("xml-js");
+const { resolve } = require("path");
 
 const layers = [ 
   'A-FLOR-EVTR',
